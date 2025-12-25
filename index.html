@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostuRa - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin-slow { animation: spin-slow 8s linear infinite; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .page-content { display: none; }
+        .page-active { display: block; }
+    </style>
+</head>
+<body class="antialiased pb-20 md:pb-0 bg-[#1e3a8a]"> 
+    <div class="flex min-h-screen">
+        
+        <aside class="hidden md:flex flex-col w-64 bg-[#1e3a8a] text-white p-6 sticky top-0 h-screen">
+            <h1 class="text-2xl font-800 mb-12 tracking-tight">PostuRa</h1>
+            <nav class="space-y-4 flex-1">
+                <a href="javascript:void(0)" onclick="showPage('beranda')" class="nav-link flex items-center gap-4 p-3 bg-white/10 rounded-xl font-bold"><span>🏠</span> Beranda</a>
+                <a href="javascript:void(0)" onclick="showPage('grafik')" class="nav-link flex items-center gap-4 p-3 opacity-70 hover:opacity-100"><span>📊</span> Grafik</a>
+                <a href="javascript:void(0)" onclick="showPage('latihan')" class="nav-link flex items-center gap-4 p-3 opacity-70 hover:opacity-100"><span>🧘</span> Latihan</a>
+                <a href="javascript:void(0)" onclick="showPage('notif')" class="nav-link flex items-center gap-4 p-3 opacity-70 hover:opacity-100"><span>🔔</span> Notifikasi</a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 p-4 md:p-10">
+            
+            <div class="flex md:hidden justify-between items-center mb-6 pt-2">
+                <h1 class="text-2xl font-800 text-[#ffffff]">PostuRa</h1>
+                <div class="relative" onclick="showPage('notif')">
+                    <span class="text-xl">🔔</span>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border"></span>
+                </div>
+            </div>
+
+            <div id="page-beranda" class="page-content page-active">
+                <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+                    <div class="lg:col-span-5 space-y-6">
+                        <div class="bg-white rounded-[2rem] p-6 md:p-8 shadow-sm border border-slate-100">
+                            <h2 class="text-center text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-6">Kondisi Postur Anda</h2>
+                            <div id="statusBox" class="bg-green-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-green-100 transition-all duration-500">
+                                <h3 id="statusText" class="text-green-600 font-extrabold text-xl md:text-2xl mb-4 leading-tight">Postur Baik</h3>
+                                <div class="relative w-40 h-40 mx-auto mb-4 bg-white rounded-2xl flex items-center justify-center shadow-inner overflow-hidden">
+                                    <img id="postureImg" src="https://img.freepik.com/free-vector/flat-design-kneeling-stretch-illustration_23-2149800057.jpg" alt="Posture" class="w-full h-full object-contain p-2">
+                                    <div id="statusRing" class="absolute inset-0 border-4 border-t-green-500 border-transparent rounded-full animate-spin-slow opacity-20"></div>
+                                </div>
+                                <p id="subStatusText" class="text-blue-900 font-bold text-sm md:text-base">Posisi Tulang Normal</p>
+                            </div>
+                            <div class="grid grid-cols-1 gap-3 mt-6">
+                                <div class="flex items-center justify-between bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                    <div class="flex items-center gap-3"><span class="text-blue-500 text-xl font-bold">📈</span><p class="text-sm font-semibold text-slate-700">Sudut Kemiringan:</p></div>
+                                    <p class="text-xl font-extrabold text-blue-900"><span id="angleVal">0</span>°</p>
+                                </div>
+                                <div class="flex items-center justify-between bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                    <div class="flex items-center gap-3"><span class="text-blue-500 text-xl">⭕</span><p class="text-sm font-semibold text-slate-700">Risk Index:</p></div>
+                                    <p class="text-xl font-extrabold text-blue-900"><span id="riskVal">0</span>%</p>
+                                </div>
+                            </div>
+                            <button class="w-full mt-6 bg-[#1e3a8a] text-white py-4 md:py-5 rounded-2xl font-800 text-base md:text-lg shadow-lg active:scale-95 transition-all">RECALIBRATE SENSOR</button>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-7">
+                        <div class="bg-white rounded-[2rem] p-6 md:p-8 shadow-sm border border-slate-100 h-full">
+                            <div class="flex justify-between items-center mb-6">
+                                <h2 class="text-lg md:text-xl font-bold text-slate-800">Riwayat Mingguan</h2>
+                                <button onclick="showPage('grafik')" class="text-blue-600 font-bold text-xs md:text-sm">Lihat Detail &rsaquo;</button>
+                            </div>
+                            <div class="h-48 md:h-64 mb-6"><canvas id="postureChart"></canvas></div>
+                            <div class="space-y-4">
+                                <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center"><p class="text-xs text-slate-500 font-bold uppercase">Rata-rata Membungkuk</p><p class="text-xl font-extrabold text-slate-800">25 Menit</p></div>
+                                <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center"><p class="text-xs text-slate-500 font-bold uppercase">Kualitas Postur</p><p class="text-xl font-extrabold text-green-500">Baik</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-grafik" class="page-content">
+                <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 max-w-4xl mx-auto">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-6 font-800">Analisis Postur Mendalam</h2>
+                    <div class="h-80 w-full mb-8"><canvas id="grafikDetail"></canvas></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100">
+                            <p class="text-xs text-blue-400 font-bold uppercase mb-1">Total Membungkuk (Minggu Ini)</p>
+                            <p class="text-3xl font-black text-blue-900">120 Menit</p>
+                        </div>
+                        <div class="bg-green-50 p-6 rounded-2xl border border-green-100">
+                            <p class="text-xs text-green-400 font-bold uppercase mb-1">Skor Kesehatan</p>
+                            <p class="text-3xl font-black text-green-900">85/100</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-latihan" class="page-content">
+                <div class="max-w-4xl mx-auto space-y-6">
+                    <h2 class="text-2xl font-bold text-white mb-4 font-800">Tips & Latihan</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-3xl overflow-hidden shadow-sm">
+                            <img src="https://img.freepik.com/free-vector/stretching-exercises-concept-illustration_114360-6122.jpg" class="h-48 w-full object-cover p-4">
+                            <div class="p-6 bg-[#1e3a8a] text-white">
+                                <h3 class="font-bold text-lg mb-2">Latihan Peregangan</h3>
+                                <p class="text-sm opacity-70 mb-4">Relaksasi otot leher dan punggung setelah bekerja lama.</p>
+                                <button class="w-full bg-white text-[#1e3a8a] py-3 rounded-xl font-bold">Mulai Sekarang</button>
+                            </div>
+                        </div>
+                        <div class="bg-[#22c55e] p-8 rounded-3xl text-white flex flex-col justify-between">
+                            <span class="text-5xl mb-4">💪</span>
+                            <div>
+                                <h3 class="font-bold text-2xl mb-2 italic uppercase">Info Kesehatan</h3>
+                                <p class="opacity-90">Duduk tegak dapat meningkatkan fokus dan mengurangi kelelahan tulang belakang.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-notif" class="page-content">
+                <div class="max-w-2xl mx-auto space-y-4">
+                    <h2 class="text-2xl font-bold text-white mb-4 font-800">Notifikasi Terbaru</h2>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border-l-8 border-red-500 flex items-center gap-4">
+                        <div class="bg-red-100 p-3 rounded-full">⚠️</div>
+                        <div class="flex-1">
+                            <p class="font-bold text-slate-800">Postur Buruk Terdeteksi!</p>
+                            <p class="text-xs text-slate-500 italic">Sudut mencapai 35 derajat pada pukul 10:15</p>
+                        </div>
+                        <span class="text-[10px] text-slate-400">2 mnt</span>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border-l-8 border-blue-500 flex items-center gap-4 opacity-70">
+                        <div class="bg-blue-100 p-3 rounded-full">🧘</div>
+                        <div class="flex-1">
+                            <p class="font-bold text-slate-800">Waktunya Peregangan</p>
+                            <p class="text-xs text-slate-500 italic">Anda sudah duduk selama 1 jam tanpa bergerak.</p>
+                        </div>
+                        <span class="text-[10px] text-slate-400">1 jam</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around items-center py-3 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-50">
+            <button onclick="showPage('beranda')" class="flex flex-col items-center gap-1 text-[#1e3a8a]">
+                <span class="text-xl">🏠</span><span class="text-[10px] font-extrabold uppercase">Beranda</span>
+            </button>
+            <button onclick="showPage('grafik')" class="flex flex-col items-center gap-1 text-slate-400">
+                <span class="text-xl">📊</span><span class="text-[10px] font-bold uppercase">Grafik</span>
+            </button>
+            <button onclick="showPage('latihan')" class="flex flex-col items-center gap-1 text-slate-400">
+                <span class="text-xl">🧘</span><span class="text-[10px] font-bold uppercase">Latihan</span>
+            </button>
+            <button onclick="showPage('notif')" class="flex flex-col items-center gap-1 text-slate-400">
+                <span class="text-xl">🔔</span><span class="text-[10px] font-bold uppercase">Notif</span>
+            </button>
+        </nav>
+    </div>
+
+    <script>
+        // 1. Inisialisasi Firebase
+        const firebaseConfig = { databaseURL: "https://postura-9be66-default-rtdb.asia-southeast1.firebasedatabase.app/" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // 2. Listen Data
+        db.ref("sensor").on("value", (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                const sudut = Math.round(data.sudut);
+                const risk = Math.round(data.risk);
+                document.getElementById("angleVal").innerText = sudut;
+                document.getElementById("riskVal").innerText = risk;
+
+                const statusBox = document.getElementById("statusBox");
+                const statusText = document.getElementById("statusText");
+                const subStatusText = document.getElementById("subStatusText");
+                const statusRing = document.getElementById("statusRing");
+
+                if (sudut > 20) {
+                    statusBox.className = "bg-red-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-red-100 transition-all duration-500";
+                    statusText.innerText = "Postur Membungkuk!";
+                    statusText.className = "text-red-600 font-extrabold text-xl md:text-2xl mb-4 leading-tight";
+                    subStatusText.innerText = "Segera Tegakkan Punggung!";
+                    statusRing.classList.replace("border-t-green-500", "border-t-red-500");
+                } else {
+                    statusBox.className = "bg-green-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-green-100 transition-all duration-500";
+                    statusText.innerText = "Postur Baik";
+                    statusText.className = "text-green-600 font-extrabold text-xl md:text-2xl mb-4 leading-tight";
+                    subStatusText.innerText = "Posisi Tulang Normal";
+                    statusRing.classList.replace("border-t-red-500", "border-t-green-500");
+                }
+            }
+        });
+
+        // 3. Fungsi Navigasi
+        function showPage(pageId) {
+            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('page-active'));
+            document.getElementById('page-' + pageId).classList.add('page-active');
+            
+            // Animasi kecil saat pindah halaman
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        // 4. Chart JS Beranda
+        const ctx = document.getElementById('postureChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['S', 'S', 'R', 'K', 'J', 'S', 'M'],
+                datasets: [{ data: [12, 25, 15, 8, 20, 5, 18], backgroundColor: '#3b82f6', borderRadius: 8 }]
+            },
+            options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false } } } }
+        });
+
+        // 5. Chart JS Detail (Halaman Grafik)
+        const ctx2 = document.getElementById('grafikDetail').getContext('2d');
+        new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00'],
+                datasets: [{ 
+                    label: 'Sudut Rata-rata',
+                    data: [10, 35, 15, 45, 12, 10], 
+                    borderColor: '#1e3a8a', 
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: 'rgba(30, 58, 138, 0.1)'
+                }]
+            },
+            options: { maintainAspectRatio: false }
+        });
+    </script>
+</body>
+</html>
