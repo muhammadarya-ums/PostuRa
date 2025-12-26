@@ -78,7 +78,7 @@
                             <div class="h-48 md:h-64 mb-6"><canvas id="postureChart"></canvas></div>
                             <div class="space-y-4">
                                 <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center"><p class="text-xs text-slate-500 font-bold uppercase">Rata-rata Membungkuk</p><p class="text-xl font-extrabold text-slate-800">25 Menit</p></div>
-                                <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center"><p class="text-xs text-slate-500 font-bold uppercase">Kualitas Postur</p><p class="text-xl font-extrabold text-green-500">Baik</p></div>
+                                <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center"><p class="text-xs text-slate-500 font-bold uppercase">Kualitas Postur</p><p id="kualitasText" class="text-xl font-extrabold text-green-500">Baik</p></div>
                             </div>
                         </div>
                     </div>
@@ -187,12 +187,16 @@
                 if (sudut > 20) {
                     statusBox.className = "bg-red-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-red-100 transition-all duration-500";
                     statusText.innerText = "Postur Membungkuk!";
+                    document.getElementById("kualitasText").innerText = "Buruk";
+    document.getElementById("kualitasText").className = "text-xl font-extrabold text-red-500";
                     statusText.className = "text-red-600 font-extrabold text-xl md:text-2xl mb-4 leading-tight";
                     subStatusText.innerText = "Segera Tegakkan Punggung!";
                     statusRing.classList.replace("border-t-green-500", "border-t-red-500");
                 } else {
                     statusBox.className = "bg-green-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-green-100 transition-all duration-500";
                     statusText.innerText = "Postur Baik";
+                    document.getElementById("kualitasText").innerText = "Baik";
+    document.getElementById("kualitasText").className = "text-xl font-extrabold text-green-500";
                     statusText.className = "text-green-600 font-extrabold text-xl md:text-2xl mb-4 leading-tight";
                     subStatusText.innerText = "Posisi Tulang Normal";
                     statusRing.classList.replace("border-t-red-500", "border-t-green-500");
