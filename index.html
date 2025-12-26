@@ -18,6 +18,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .page-content { display: none; }
         .page-active { display: block; }
+        .transition-all { transition: all 0.5s ease; }
     </style>
 </head>
 <body class="antialiased pb-20 md:pb-0 bg-[#1e3a8a]"> 
@@ -34,28 +35,31 @@
         </aside>
 
         <main class="flex-1 p-4 md:p-10">
-            
-            <div class="flex md:hidden justify-between items-center mb-6 pt-2">
-                <h1 class="text-2xl font-800 text-[#ffffff]">PostuRa</h1>
+            <div class="flex md:hidden justify-between items-center mb-6 pt-2 text-white">
+                <h1 class="text-2xl font-800">PostuRa</h1>
                 <div class="relative" onclick="showPage('notif')">
                     <span class="text-xl">🔔</span>
-                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border"></span>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
                 </div>
             </div>
 
             <div id="page-beranda" class="page-content page-active">
                 <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+                    
                     <div class="lg:col-span-5 space-y-6">
                         <div class="bg-white rounded-[2rem] p-6 md:p-8 shadow-sm border border-slate-100">
                             <h2 class="text-center text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-6">Kondisi Postur Anda</h2>
-                            <div id="statusBox" class="bg-green-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-green-100 transition-all duration-500">
+                            
+                            <div id="statusBox" class="bg-green-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-green-100 transition-all">
                                 <h3 id="statusText" class="text-green-600 font-extrabold text-xl md:text-2xl mb-4 leading-tight">Postur Baik</h3>
-                                <div class="relative w-40 h-40 mx-auto mb-4 bg-white rounded-2xl flex items-center justify-center shadow-inner overflow-hidden">
+                                
+                                <div class="relative w-40 h-40 mx-auto mb-4 bg-white rounded-2xl flex items-center justify-center shadow-inner overflow-hidden border border-slate-50">
                                     <img id="postureImg" src="https://img.freepik.com/free-vector/flat-design-kneeling-stretch-illustration_23-2149800057.jpg" alt="Posture" class="w-full h-full object-contain p-2">
                                     <div id="statusRing" class="absolute inset-0 border-4 border-t-green-500 border-transparent rounded-full animate-spin-slow opacity-20"></div>
                                 </div>
                                 <p id="subStatusText" class="text-blue-900 font-bold text-sm md:text-base">Posisi Tulang Normal</p>
                             </div>
+
                             <div class="grid grid-cols-1 gap-3 mt-6">
                                 <div class="flex items-center justify-between bg-slate-50 p-4 rounded-2xl border border-slate-100">
                                     <div class="flex items-center gap-3"><span class="text-blue-500 text-xl font-bold">📈</span><p class="text-sm font-semibold text-slate-700">Sudut Kemiringan:</p></div>
@@ -69,6 +73,7 @@
                             <button class="w-full mt-6 bg-[#1e3a8a] text-white py-4 md:py-5 rounded-2xl font-800 text-base md:text-lg shadow-lg active:scale-95 transition-all">RECALIBRATE SENSOR</button>
                         </div>
                     </div>
+
                     <div class="lg:col-span-7">
                         <div class="bg-white rounded-[2rem] p-6 md:p-8 shadow-sm border border-slate-100 h-full">
                             <div class="flex justify-between items-center mb-6">
@@ -77,8 +82,14 @@
                             </div>
                             <div class="h-48 md:h-64 mb-6"><canvas id="postureChart"></canvas></div>
                             <div class="space-y-4">
-                                <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center"><p class="text-xs text-slate-500 font-bold uppercase">Rata-rata Membungkuk</p><p class="text-xl font-extrabold text-slate-800">25 Menit</p></div>
-                                <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center"><p class="text-xs text-slate-500 font-bold uppercase">Kualitas Postur</p><p id="kualitasText" class="text-xl font-extrabold text-green-500">Baik</p></div>
+                                <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center">
+                                    <p class="text-xs text-slate-500 font-bold uppercase">Rata-rata Membungkuk</p>
+                                    <p class="text-xl font-extrabold text-slate-800">25 Menit</p>
+                                </div>
+                                <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center">
+                                    <p class="text-xs text-slate-500 font-bold uppercase">Kualitas Postur</p>
+                                    <p id="kualitasText" class="text-xl font-extrabold text-green-500">Baik</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -128,21 +139,12 @@
             <div id="page-notif" class="page-content">
                 <div class="max-w-2xl mx-auto space-y-4">
                     <h2 class="text-2xl font-bold text-white mb-4 font-800">Notifikasi Terbaru</h2>
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border-l-8 border-red-500 flex items-center gap-4">
-                        <div class="bg-red-100 p-3 rounded-full">⚠️</div>
+                    <div id="alertNotif" class="bg-white p-5 rounded-2xl shadow-sm border-l-8 border-blue-500 flex items-center gap-4 transition-all">
+                        <div id="notifIcon" class="bg-blue-100 p-3 rounded-full text-xl">ℹ️</div>
                         <div class="flex-1">
-                            <p class="font-bold text-slate-800">Postur Buruk Terdeteksi!</p>
-                            <p class="text-xs text-slate-500 italic">Sudut mencapai 35 derajat pada pukul 10:15</p>
+                            <p id="notifTitle" class="font-bold text-slate-800">Sistem Siap</p>
+                            <p id="notifDesc" class="text-xs text-slate-500 italic">Mulai memantau postur Anda sekarang.</p>
                         </div>
-                        <span class="text-[10px] text-slate-400">2 mnt</span>
-                    </div>
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border-l-8 border-blue-500 flex items-center gap-4 opacity-70">
-                        <div class="bg-blue-100 p-3 rounded-full">🧘</div>
-                        <div class="flex-1">
-                            <p class="font-bold text-slate-800">Waktunya Peregangan</p>
-                            <p class="text-xs text-slate-500 italic">Anda sudah duduk selama 1 jam tanpa bergerak.</p>
-                        </div>
-                        <span class="text-[10px] text-slate-400">1 jam</span>
                     </div>
                 </div>
             </div>
@@ -170,12 +172,14 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 2. Listen Data
+        // 2. Listen Data & Real-time Update
         db.ref("sensor").on("value", (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 const sudut = Math.round(data.sudut);
                 const risk = Math.round(data.risk);
+                
+                // Update Angka
                 document.getElementById("angleVal").innerText = sudut;
                 document.getElementById("riskVal").innerText = risk;
 
@@ -183,23 +187,45 @@
                 const statusText = document.getElementById("statusText");
                 const subStatusText = document.getElementById("subStatusText");
                 const statusRing = document.getElementById("statusRing");
+                const kualitasText = document.getElementById("kualitasText");
 
                 if (sudut > 20) {
-                    statusBox.className = "bg-red-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-red-100 transition-all duration-500";
-                    statusText.innerText = "Postur Membungkuk!";
-                    document.getElementById("kualitasText").innerText = "Buruk";
-    document.getElementById("kualitasText").className = "text-xl font-extrabold text-red-500";
+                    // MODE BAHAYA (MERAH)
+                    statusBox.className = "bg-red-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-red-200 transition-all shadow-lg shadow-red-100";
+                    statusText.innerText = "⚠️ Postur Membungkuk!";
                     statusText.className = "text-red-600 font-extrabold text-xl md:text-2xl mb-4 leading-tight";
                     subStatusText.innerText = "Segera Tegakkan Punggung!";
-                    statusRing.classList.replace("border-t-green-500", "border-t-red-500");
+                    subStatusText.className = "text-red-700 font-bold animate-pulse";
+                    
+                    // Ring Bahaya
+                    statusRing.className = "absolute inset-0 border-4 border-t-red-500 border-transparent rounded-full animate-spin-slow opacity-100";
+                    
+                    // Label Riwayat
+                    kualitasText.innerText = "Buruk";
+                    kualitasText.className = "text-xl font-extrabold text-red-500";
+
+                    // Update Notifikasi (Opsional: memperbarui halaman notif jika data buruk)
+                    const notifTitle = document.getElementById("notifTitle");
+                    if(notifTitle) {
+                        document.getElementById("alertNotif").className = "bg-white p-5 rounded-2xl shadow-sm border-l-8 border-red-500 flex items-center gap-4 transition-all";
+                        document.getElementById("notifIcon").innerText = "⚠️";
+                        document.getElementById("notifTitle").innerText = "Bahaya: Terlalu Membungkuk";
+                        document.getElementById("notifDesc").innerText = "Sudut mencapai " + sudut + "° derajat.";
+                    }
                 } else {
-                    statusBox.className = "bg-green-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-green-100 transition-all duration-500";
-                    statusText.innerText = "Postur Baik";
-                    document.getElementById("kualitasText").innerText = "Baik";
-    document.getElementById("kualitasText").className = "text-xl font-extrabold text-green-500";
+                    // MODE AMAN (HIJAU)
+                    statusBox.className = "bg-green-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-green-100 transition-all";
+                    statusText.innerText = "✅ Postur Baik";
                     statusText.className = "text-green-600 font-extrabold text-xl md:text-2xl mb-4 leading-tight";
                     subStatusText.innerText = "Posisi Tulang Normal";
-                    statusRing.classList.replace("border-t-red-500", "border-t-green-500");
+                    subStatusText.className = "text-blue-900 font-bold";
+                    
+                    // Ring Aman
+                    statusRing.className = "absolute inset-0 border-4 border-t-green-500 border-transparent rounded-full animate-spin-slow opacity-20";
+                    
+                    // Label Riwayat
+                    kualitasText.innerText = "Baik";
+                    kualitasText.className = "text-xl font-extrabold text-green-500";
                 }
             }
         });
@@ -209,7 +235,14 @@
             document.querySelectorAll('.page-content').forEach(p => p.classList.remove('page-active'));
             document.getElementById('page-' + pageId).classList.add('page-active');
             
-            // Animasi kecil saat pindah halaman
+            // Update Active Link Style (Mobile)
+            document.querySelectorAll('nav button').forEach(btn => {
+                btn.classList.add('text-slate-400');
+                btn.classList.remove('text-[#1e3a8a]');
+            });
+            event.currentTarget.classList.remove('text-slate-400');
+            event.currentTarget.classList.add('text-[#1e3a8a]');
+            
             window.scrollTo({top: 0, behavior: 'smooth'});
         }
 
