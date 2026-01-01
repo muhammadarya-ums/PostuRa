@@ -35,6 +35,12 @@
         </aside>
 
         <main class="flex-1 p-4 md:p-10">
+            <div class="flex justify-end mb-2">
+    <div class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
+        <div id="connectionDot" class="w-2 h-2 rounded-full bg-red-500"></div>
+        <span id="connectionText" class="text-[10px] text-white font-bold uppercase">Disconnected</span>
+    </div>
+</div>
             <div class="flex md:hidden justify-between items-center mb-6 pt-2 text-white">
                 <h1 class="text-2xl font-800">PostuRa</h1>
                 <div class="relative" onclick="showPage('notif')">
@@ -70,7 +76,8 @@
                                     <p class="text-xl font-extrabold text-blue-900"><span id="riskVal">0</span>%</p>
                                 </div>
                             </div>
-                            <button class="w-full mt-6 bg-[#1e3a8a] text-white py-4 md:py-5 rounded-2xl font-800 text-base md:text-lg shadow-lg active:scale-95 transition-all">RECALIBRATE SENSOR</button>
+                           <button onclick="recalibrate()" class="w-full mt-6 bg-[#1e3a8a] text-white py-4 md:py-5 rounded-2xl font-800 text-base md:text-lg shadow-lg active:scale-95 transition-all">RECALIBRATE SENSOR
+</button>
                         </div>
                     </div>
 
@@ -83,9 +90,9 @@
                             <div class="h-48 md:h-64 mb-6"><canvas id="postureChart"></canvas></div>
                             <div class="space-y-4">
                                 <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center">
-                                    <p class="text-xs text-slate-500 font-bold uppercase">Rata-rata Membungkuk</p>
-                                    <p class="text-xl font-extrabold text-slate-800">25 Menit</p>
-                                </div>
+                                   <p class="text-xs text-slate-500 font-bold uppercase">Durasi Membungkuk</p>
+                                   <p id="timerText" class="text-xl font-extrabold text-slate-800">00:00</p>
+</div>
                                 <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center">
                                     <p class="text-xs text-slate-500 font-bold uppercase">Kualitas Postur</p>
                                     <p id="kualitasText" class="text-xl font-extrabold text-green-500">Baik</p>
@@ -166,114 +173,141 @@
         </nav>
     </div>
 
-    <script>
-        // 1. Inisialisasi Firebase
-        const firebaseConfig = { databaseURL: "https://postura-9be66-default-rtdb.asia-southeast1.firebasedatabase.app/" };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+   <script>
+    // 1. Inisialisasi Firebase
+    const firebaseConfig = { databaseURL: "https://postura-9be66-default-rtdb.asia-southeast1.firebasedatabase.app/" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-        // 2. Listen Data & Real-time Update
-        db.ref("sensor").on("value", (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                const sudut = Math.round(data.sudut);
-                const risk = Math.round(data.risk);
-                
-                // Update Angka
-                document.getElementById("angleVal").innerText = sudut;
-                document.getElementById("riskVal").innerText = risk;
+    // VARIABEL GLOBAL UNTUK LOGIKA BARU
+    let offsetSudut = 0;
+    let isSpeaking = false;
+    let secondsSlouching = 0;
+    let timerInterval = null;
 
-                const statusBox = document.getElementById("statusBox");
-                const statusText = document.getElementById("statusText");
-                const subStatusText = document.getElementById("subStatusText");
-                const statusRing = document.getElementById("statusRing");
-                const kualitasText = document.getElementById("kualitasText");
-
-                if (sudut > 20) {
-                    // MODE BAHAYA (MERAH)
-                    statusBox.className = "bg-red-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-red-200 transition-all shadow-lg shadow-red-100";
-                    statusText.innerText = "⚠️ Postur Membungkuk!";
-                    statusText.className = "text-red-600 font-extrabold text-xl md:text-2xl mb-4 leading-tight";
-                    subStatusText.innerText = "Segera Tegakkan Punggung!";
-                    subStatusText.className = "text-red-700 font-bold animate-pulse";
-                    
-                    // Ring Bahaya
-                    statusRing.className = "absolute inset-0 border-4 border-t-red-500 border-transparent rounded-full animate-spin-slow opacity-100";
-                    
-                    // Label Riwayat
-                    kualitasText.innerText = "Buruk";
-                    kualitasText.className = "text-xl font-extrabold text-red-500";
-
-                    // Update Notifikasi (Opsional: memperbarui halaman notif jika data buruk)
-                    const notifTitle = document.getElementById("notifTitle");
-                    if(notifTitle) {
-                        document.getElementById("alertNotif").className = "bg-white p-5 rounded-2xl shadow-sm border-l-8 border-red-500 flex items-center gap-4 transition-all";
-                        document.getElementById("notifIcon").innerText = "⚠️";
-                        document.getElementById("notifTitle").innerText = "Bahaya: Terlalu Membungkuk";
-                        document.getElementById("notifDesc").innerText = "Sudut mencapai " + sudut + "° derajat.";
-                    }
-                } else {
-                    // MODE AMAN (HIJAU)
-                    statusBox.className = "bg-green-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-green-100 transition-all";
-                    statusText.innerText = "✅ Postur Baik";
-                    statusText.className = "text-green-600 font-extrabold text-xl md:text-2xl mb-4 leading-tight";
-                    subStatusText.innerText = "Posisi Tulang Normal";
-                    subStatusText.className = "text-blue-900 font-bold";
-                    
-                    // Ring Aman
-                    statusRing.className = "absolute inset-0 border-4 border-t-green-500 border-transparent rounded-full animate-spin-slow opacity-20";
-                    
-                    // Label Riwayat
-                    kualitasText.innerText = "Baik";
-                    kualitasText.className = "text-xl font-extrabold text-green-500";
-                }
-            }
+    // 2. Fungsi Kalibrasi
+    function recalibrate() {
+        db.ref("sensor/sudut").once("value", (snapshot) => {
+            offsetSudut = snapshot.val() || 0;
+            alert("Kalibrasi Berhasil! Posisi saat ini dianggap 0 derajat.");
         });
+    }
 
-        // 3. Fungsi Navigasi
-        function showPage(pageId) {
-            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('page-active'));
-            document.getElementById('page-' + pageId).classList.add('page-active');
-            
-            // Update Active Link Style (Mobile)
-            document.querySelectorAll('nav button').forEach(btn => {
-                btn.classList.add('text-slate-400');
-                btn.classList.remove('text-[#1e3a8a]');
-            });
-            event.currentTarget.classList.remove('text-slate-400');
-            event.currentTarget.classList.add('text-[#1e3a8a]');
-            
-            window.scrollTo({top: 0, behavior: 'smooth'});
+    // 3. Logika Timer (Menghitung durasi membungkuk)
+    function updateTimerUI() {
+        const minutes = Math.floor(secondsSlouching / 60);
+        const seconds = secondsSlouching % 60;
+        document.getElementById("timerText").innerText = 
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // 4. Listen Data & Real-time Update
+    db.ref("sensor").on("value", (snapshot) => {
+        const data = snapshot.val();
+        
+        // Update Indikator Koneksi
+        const connDot = document.getElementById("connectionDot");
+        const connText = document.getElementById("connectionText");
+        if(connDot) {
+            connDot.classList.replace("bg-red-500", "bg-green-500");
+            connDot.classList.add("animate-pulse");
+            connText.innerText = "Cloud Connected";
         }
 
-        // 4. Chart JS Beranda
-        const ctx = document.getElementById('postureChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['S', 'S', 'R', 'K', 'J', 'S', 'M'],
-                datasets: [{ data: [12, 25, 15, 8, 20, 5, 18], backgroundColor: '#3b82f6', borderRadius: 8 }]
-            },
-            options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false } } } }
-        });
+        if (data) {
+            const sudutRaw = Math.round(data.sudut);
+            const sudut = Math.abs(sudutRaw - offsetSudut); 
+            const risk = Math.round(data.risk);
+            
+            document.getElementById("angleVal").innerText = sudut;
+            document.getElementById("riskVal").innerText = risk;
 
-        // 5. Chart JS Detail (Halaman Grafik)
-        const ctx2 = document.getElementById('grafikDetail').getContext('2d');
-        new Chart(ctx2, {
-            type: 'line',
-            data: {
-                labels: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00'],
-                datasets: [{ 
-                    label: 'Sudut Rata-rata',
-                    data: [10, 35, 15, 45, 12, 10], 
-                    borderColor: '#1e3a8a', 
-                    tension: 0.4,
-                    fill: true,
-                    backgroundColor: 'rgba(30, 58, 138, 0.1)'
-                }]
-            },
-            options: { maintainAspectRatio: false }
-        });
-    </script>
+            const statusBox = document.getElementById("statusBox");
+            const statusText = document.getElementById("statusText");
+            const subStatusText = document.getElementById("subStatusText");
+            const statusRing = document.getElementById("statusRing");
+            const kualitasText = document.getElementById("kualitasText");
+            const postureImg = document.getElementById("postureImg");
+
+            if (sudut > 20) {
+                // --- MODE BAHAYA (MERAH) ---
+                statusBox.className = "bg-red-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-red-200 transition-all shadow-lg shadow-red-100";
+                statusText.innerText = "⚠️ Postur Membungkuk!";
+                statusText.className = "text-red-600 font-extrabold text-xl md:text-2xl mb-4 leading-tight";
+                subStatusText.innerText = "Segera Tegakkan Punggung!";
+                subStatusText.className = "text-red-700 font-bold animate-pulse";
+                
+                // Ganti Gambar ke Icon Membungkuk & Beri Efek Merah
+                if(postureImg) {
+                    postureImg.src = "https://cdn-icons-png.flaticon.com/512/3048/3048378.png";
+                    postureImg.style.filter = "sepia(1) saturate(5) hue-rotate(-50deg)";
+                }
+
+                statusRing.className = "absolute inset-0 border-4 border-t-red-500 border-transparent rounded-full animate-spin-slow opacity-100";
+                kualitasText.innerText = "Buruk";
+                kualitasText.className = "text-xl font-extrabold text-red-500";
+
+                // JALANKAN TIMER
+                if (!timerInterval) {
+                    timerInterval = setInterval(() => {
+                        secondsSlouching++;
+                        updateTimerUI();
+                    }, 1000);
+                }
+
+                // PERINGATAN SUARA
+                if (!isSpeaking) {
+                    isSpeaking = true;
+                    const speech = new SpeechSynthesisUtterance("Peringatan, posisi punggung Anda terlalu membungkuk.");
+                    speech.lang = 'id-ID';
+                    speech.onend = () => { setTimeout(() => { isSpeaking = false; }, 8000); };
+                    window.speechSynthesis.speak(speech);
+                }
+            } else {
+                // --- MODE AMAN (HIJAU) ---
+                statusBox.className = "bg-green-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-green-100 transition-all";
+                statusText.innerText = "✅ Postur Baik";
+                statusText.className = "text-green-600 font-extrabold text-xl md:text-2xl mb-4 leading-tight";
+                subStatusText.innerText = "Posisi Tulang Normal";
+                subStatusText.className = "text-blue-900 font-bold";
+                
+                // Ganti Gambar ke Icon Tegak & Hapus Filter
+                if(postureImg) {
+                    postureImg.src = "https://img.freepik.com/free-vector/flat-design-kneeling-stretch-illustration_23-2149800057.jpg";
+                    postureImg.style.filter = "none";
+                }
+
+                statusRing.className = "absolute inset-0 border-4 border-t-green-500 border-transparent rounded-full animate-spin-slow opacity-20";
+                kualitasText.innerText = "Baik";
+                kualitasText.className = "text-xl font-extrabold text-green-500";
+
+                // HENTIKAN TIMER
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+    }, (error) => {
+        const connDot = document.getElementById("connectionDot");
+        if(connDot) connDot.className = "w-2 h-2 rounded-full bg-red-500";
+    });
+
+    // 5. Fungsi Navigasi & Chart (Tetap sama seperti sebelumnya)
+    function showPage(pageId) {
+        document.querySelectorAll('.page-content').forEach(p => p.classList.remove('page-active'));
+        document.getElementById('page-' + pageId).classList.add('page-active');
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    // [Lanjutkan kode Chart JS kamu di sini...]
+    const ctx = document.getElementById('postureChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['S', 'S', 'R', 'K', 'J', 'S', 'M'],
+            datasets: [{ data: [12, 25, 15, 8, 20, 5, 18], backgroundColor: '#3b82f6', borderRadius: 8 }]
+        },
+        options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false } } } }
+    });
+</script>
 </body>
 </html>
