@@ -176,49 +176,62 @@
    <script>
     // 1. Inisialisasi Firebase
     const firebaseConfig = { databaseURL: "https://postura-9be66-default-rtdb.asia-southeast1.firebasedatabase.app/" };
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
     const db = firebase.database();
 
-    // VARIABEL GLOBAL UNTUK LOGIKA BARU
+    // --- VARIABEL GLOBAL ---
     let offsetSudut = 0;
     let isSpeaking = false;
     let secondsSlouching = 0;
     let timerInterval = null;
+    let smoothedSudut = 0; // Untuk filter data agar halus
 
     // 2. Fungsi Kalibrasi
     function recalibrate() {
         db.ref("sensor/sudut").once("value", (snapshot) => {
-            offsetSudut = snapshot.val() || 0;
+            const currentVal = snapshot.val() || 0;
+            offsetSudut = currentVal;
             alert("Kalibrasi Berhasil! Posisi saat ini dianggap 0 derajat.");
         });
     }
 
-    // 3. Logika Timer (Menghitung durasi membungkuk)
+    // 3. Logika Timer (Update tampilan waktu)
     function updateTimerUI() {
         const minutes = Math.floor(secondsSlouching / 60);
         const seconds = secondsSlouching % 60;
-        document.getElementById("timerText").innerText = 
-            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        const timerElem = document.getElementById("timerText");
+        if(timerElem) {
+            timerElem.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
     }
 
-    // 4. Listen Data & Real-time Update
+    // 4. Real-time Listener
     db.ref("sensor").on("value", (snapshot) => {
         const data = snapshot.val();
         
-        // Update Indikator Koneksi
+        // Update Indikator Koneksi Cloud
         const connDot = document.getElementById("connectionDot");
         const connText = document.getElementById("connectionText");
         if(connDot) {
             connDot.classList.replace("bg-red-500", "bg-green-500");
             connDot.classList.add("animate-pulse");
-            connText.innerText = "Cloud Connected";
+            if(connText) connText.innerText = "Cloud Connected";
         }
 
         if (data) {
+            // Logika Kalibrasi & Smoothing
             const sudutRaw = Math.round(data.sudut);
-            const sudut = Math.abs(sudutRaw - offsetSudut); 
+            const targetSudut = Math.abs(sudutRaw - offsetSudut); 
+            
+            // SMOOTHING: Mengambil 30% data baru + 70% data lama agar angka tidak 'flicker'
+            smoothedSudut = (smoothedSudut * 0.7) + (targetSudut * 0.3);
+            const sudut = Math.round(smoothedSudut);
+            
             const risk = Math.round(data.risk);
             
+            // Update UI Angka
             document.getElementById("angleVal").innerText = sudut;
             document.getElementById("riskVal").innerText = risk;
 
@@ -237,7 +250,6 @@
                 subStatusText.innerText = "Segera Tegakkan Punggung!";
                 subStatusText.className = "text-red-700 font-bold animate-pulse";
                 
-                // Ganti Gambar ke Icon Membungkuk & Beri Efek Merah
                 if(postureImg) {
                     postureImg.src = "https://cdn-icons-png.flaticon.com/512/3048/3048378.png";
                     postureImg.style.filter = "sepia(1) saturate(5) hue-rotate(-50deg)";
@@ -247,7 +259,7 @@
                 kualitasText.innerText = "Buruk";
                 kualitasText.className = "text-xl font-extrabold text-red-500";
 
-                // JALANKAN TIMER
+                // Kelola Timer
                 if (!timerInterval) {
                     timerInterval = setInterval(() => {
                         secondsSlouching++;
@@ -255,12 +267,12 @@
                     }, 1000);
                 }
 
-                // PERINGATAN SUARA
+                // Kelola Suara (Voice Alert)
                 if (!isSpeaking) {
                     isSpeaking = true;
                     const speech = new SpeechSynthesisUtterance("Peringatan, posisi punggung Anda terlalu membungkuk.");
                     speech.lang = 'id-ID';
-                    speech.onend = () => { setTimeout(() => { isSpeaking = false; }, 8000); };
+                    speech.onend = () => { setTimeout(() => { isSpeaking = false; }, 10000); };
                     window.speechSynthesis.speak(speech);
                 }
             } else {
@@ -271,7 +283,6 @@
                 subStatusText.innerText = "Posisi Tulang Normal";
                 subStatusText.className = "text-blue-900 font-bold";
                 
-                // Ganti Gambar ke Icon Tegak & Hapus Filter
                 if(postureImg) {
                     postureImg.src = "https://img.freepik.com/free-vector/flat-design-kneeling-stretch-illustration_23-2149800057.jpg";
                     postureImg.style.filter = "none";
@@ -281,33 +292,73 @@
                 kualitasText.innerText = "Baik";
                 kualitasText.className = "text-xl font-extrabold text-green-500";
 
-                // HENTIKAN TIMER
+                // Stop Timer
                 clearInterval(timerInterval);
                 timerInterval = null;
             }
         }
     }, (error) => {
+        console.error("Firebase Error:", error);
         const connDot = document.getElementById("connectionDot");
-        if(connDot) connDot.className = "w-2 h-2 rounded-full bg-red-500";
+        if(connDot) connDot.className = "w-2 h-2 rounded-full bg-red-500 animate-none";
     });
 
-    // 5. Fungsi Navigasi & Chart (Tetap sama seperti sebelumnya)
+    // 5. Fungsi Navigasi
     function showPage(pageId) {
         document.querySelectorAll('.page-content').forEach(p => p.classList.remove('page-active'));
-        document.getElementById('page-' + pageId).classList.add('page-active');
+        const targetPage = document.getElementById('page-' + pageId);
+        if(targetPage) targetPage.classList.add('page-active');
+        
+        // Update style tombol navigasi mobile
+        document.querySelectorAll('nav button').forEach(btn => {
+            btn.classList.replace('text-[#1e3a8a]', 'text-slate-400');
+        });
+        
         window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
-    // [Lanjutkan kode Chart JS kamu di sini...]
-    const ctx = document.getElementById('postureChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['S', 'S', 'R', 'K', 'J', 'S', 'M'],
-            datasets: [{ data: [12, 25, 15, 8, 20, 5, 18], backgroundColor: '#3b82f6', borderRadius: 8 }]
-        },
-        options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false } } } }
+    // 6. Inisialisasi Grafik (Proper Chart.js Integration)
+    window.addEventListener('DOMContentLoaded', () => {
+        // Grafik Mingguan (Beranda)
+        const ctx = document.getElementById('postureChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['S', 'S', 'R', 'K', 'J', 'S', 'M'],
+                datasets: [{ 
+                    data: [12, 25, 15, 8, 20, 5, 18], 
+                    backgroundColor: '#3b82f6', 
+                    borderRadius: 8 
+                }]
+            },
+            options: { 
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false } }, 
+                scales: { y: { display: false }, x: { grid: { display: false } } } 
+            }
+        });
+
+        // Grafik Analisis Detail
+        const ctx2 = document.getElementById('grafikDetail').getContext('2d');
+        if(ctx2) {
+            new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00'],
+                    datasets: [{ 
+                        label: 'Sudut Rata-rata',
+                        data: [10, 35, 15, 45, 12, 10], 
+                        borderColor: '#1e3a8a', 
+                        tension: 0.4,
+                        fill: true,
+                        backgroundColor: 'rgba(30, 58, 138, 0.1)'
+                    }]
+                },
+                options: { maintainAspectRatio: false }
+            });
+        }
     });
-</script>
+</script>;
 </body>
+
 </html>
