@@ -205,44 +205,52 @@
         }
     }
 
-    // 4. REAL-TIME LISTENER (VERSI ANTI-Gagal)
-    // Kita langsung tembak ke "sensor/sudut" agar datanya pasti angka
-    db.ref("sensor/sudut").on("value", (snapshot) => {
-        const sudutFirebase = snapshot.val();
-        
-        // Update Indikator Koneksi
-        const connDot = document.getElementById("connectionDot");
-        if(connDot) {
-            connDot.classList.replace("bg-red-500", "bg-green-500");
-            document.getElementById("connectionText").innerText = "Cloud Connected";
-        }
+    // 4. Real-time Listener (Versi Sinkronisasi Wokwi)
+    // Kita memantau seluruh folder "sensor" agar semua perubahan terdeteksi
+    db.ref("sensor").on("value", (snapshot) => {
+        const data = snapshot.val();
+        console.log("Data Firebase:", data); // Cek di F12 jika masih ragu
 
-        if (sudutFirebase !== null) {
-            // A. Logika Kalibrasi & Smoothing
-            const targetSudut = Math.abs(sudutFirebase - offsetSudut); 
+        if (data) {
+            // A. Ambil nilai langsung dari path yang dikirim Wokwi
+            const sudutRaw = data.sudut !== undefined ? data.sudut : 0;
+            const riskRaw = data.risk !== undefined ? data.risk : 0;
+
+            // B. Logika Kalibrasi & Smoothing
+            const targetSudut = Math.abs(sudutRaw - offsetSudut); 
             smoothedSudut = (smoothedSudut * 0.7) + (targetSudut * 0.3);
             const sudutFinal = Math.round(smoothedSudut);
             
-            // B. Update Angka ke Dashboard
+            // C. Update Angka ke UI Dashboard
             document.getElementById("angleVal").innerText = sudutFinal;
-            document.getElementById("riskVal").innerText = Math.min(Math.round(sudutFinal * 1.5), 100);
+            document.getElementById("riskVal").innerText = Math.round(riskRaw);
 
-            // C. Logika Kondisi (Bahaya vs Aman)
+            // D. Logika Status (Warna, Teks, & Gambar)
             const statusBox = document.getElementById("statusBox");
             const statusText = document.getElementById("statusText");
+            const subStatusText = document.getElementById("subStatusText");
             const postureImg = document.getElementById("postureImg");
+            const kualitasText = document.getElementById("kualitasText");
+            const statusRing = document.getElementById("statusRing");
 
-            if (sudutFinal > 20) {
-                // --- MODE BAHAYA ---
+            // E. Kondisi Threshold (Sesuaikan dengan log Wokwi kamu)
+            if (sudutFinal > 20) { 
+                // --- MODE BAHAYA (MERAH) ---
                 statusBox.className = "bg-red-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-red-200 transition-all shadow-lg shadow-red-100";
                 statusText.innerText = "⚠️ Postur Membungkuk!";
+                statusText.className = "text-red-600 font-extrabold text-xl md:text-2xl mb-4 leading-tight";
+                subStatusText.innerText = "Segera Tegakkan Punggung!";
+                subStatusText.className = "text-red-700 font-bold animate-pulse";
+                kualitasText.innerText = "Buruk";
+                kualitasText.className = "text-xl font-extrabold text-red-500";
                 
                 if(postureImg) {
                     postureImg.src = "https://cdn-icons-png.flaticon.com/512/3048/3048378.png";
                     postureImg.style.filter = "sepia(1) saturate(5) hue-rotate(-50deg)";
                 }
+                if(statusRing) statusRing.className = "absolute inset-0 border-4 border-t-red-500 border-transparent rounded-full animate-spin-slow opacity-100";
 
-                // JALANKAN TIMER
+                // Jalankan Timer
                 if (!timerInterval) {
                     timerInterval = setInterval(() => {
                         secondsSlouching++;
@@ -250,31 +258,36 @@
                     }, 1000);
                 }
 
-                // SUARA
+                // Peringatan Suara
                 if (!isSpeaking) {
                     isSpeaking = true;
                     const speech = new SpeechSynthesisUtterance("Peringatan, posisi punggung Anda terlalu membungkuk.");
                     speech.lang = 'id-ID';
-                    speech.onend = () => { setTimeout(() => { isSpeaking = false; }, 10000); };
+                    speech.onend = () => { setTimeout(() => { isSpeaking = false; }, 8000); };
                     window.speechSynthesis.speak(speech);
                 }
             } else {
-                // --- MODE AMAN ---
+                // --- MODE AMAN (HIJAU) ---
                 statusBox.className = "bg-green-50 rounded-[1.5rem] p-6 md:p-8 text-center border border-green-100 transition-all";
                 statusText.innerText = "✅ Postur Baik";
+                statusText.className = "text-green-600 font-extrabold text-xl md:text-2xl mb-4 leading-tight";
+                subStatusText.innerText = "Posisi Tulang Normal";
+                subStatusText.className = "text-blue-900 font-bold";
+                kualitasText.innerText = "Baik";
+                kualitasText.className = "text-xl font-extrabold text-green-500";
                 
                 if(postureImg) {
                     postureImg.src = "https://img.freepik.com/free-vector/flat-design-kneeling-stretch-illustration_23-2149800057.jpg";
                     postureImg.style.filter = "none";
                 }
+                if(statusRing) statusRing.className = "absolute inset-0 border-4 border-t-green-500 border-transparent rounded-full animate-spin-slow opacity-20";
 
-                // STOP TIMER
+                // Hentikan Timer
                 clearInterval(timerInterval);
                 timerInterval = null;
             }
         }
     });
-
     // 5. Navigasi
     function showPage(pageId) {
         document.querySelectorAll('.page-content').forEach(p => p.classList.remove('page-active'));
@@ -297,4 +310,5 @@
 </body>
 
 </html>
+
 
