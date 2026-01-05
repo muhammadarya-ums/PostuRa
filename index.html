@@ -205,71 +205,88 @@
         }
     }
 
-    // 4. Real-time Listener (Versi Akurasi Tinggi)
-    db.ref("sensor").on("value", (snapshot) => {
-        const data = snapshot.val();
+    // 4. Real-time Listener (Versi Stabil & Akurat)
+db.ref("sensor").on("value", (snapshot) => {
+    const data = snapshot.val();
+    console.log("Data Firebase:", data); // Untuk memantau di F12 Console
+
+    if (data) {
+        // Ambil data mentah (gunakan default 0 jika data kosong)
+        const sudutRaw = Number(data.sudut) || 0;
+        const riskRaw = Number(data.risk) || 0;
         
-        if (data) {
-            // Ambil data mentah tanpa filter agar sama dengan Wokwi
-            const sudutRaw = data.sudut !== undefined ? data.sudut : 0;
-            const riskRaw = data.risk !== undefined ? data.risk : 0;
+        // Safety Check untuk offsetSudut agar tidak menghasilkan NaN
+        const currentOffset = Number(offsetSudut) || 0;
 
-            // Hitung selisih berdasarkan kalibrasi (jika ada)
-            const sudutFinal = Math.abs(Math.round(sudutRaw - offsetSudut));
-            
-            // 1. UPDATE ANGKA (Harus Sama dengan Wokwi)
-            document.getElementById("angleVal").innerText = sudutFinal;
-            document.getElementById("riskVal").innerText = Math.round(riskRaw);
+        // Hitung selisih mutlak
+        const sudutFinal = Math.abs(Math.round(sudutRaw - currentOffset));
+        
+        // 1. UPDATE ANGKA KE UI
+        // Gunakan try-catch sederhana atau pastikan ID ada
+        const angleElem = document.getElementById("angleVal");
+        const riskElem = document.getElementById("riskVal");
+        
+        if(angleElem) angleElem.innerText = sudutFinal;
+        if(riskElem) riskElem.innerText = Math.round(riskRaw);
 
-            // 2. LOGIKA STATUS & TIMER
-            const statusBox = document.getElementById("statusBox");
-            const statusText = document.getElementById("statusText");
-            const postureImg = document.getElementById("postureImg");
+        // 2. LOGIKA STATUS & TIMER
+        const statusBox = document.getElementById("statusBox");
+        const statusText = document.getElementById("statusText");
+        const postureImg = document.getElementById("postureImg");
+        const kualitasText = document.getElementById("kualitasText");
 
-            // Jika sudut di atas 20 derajat (Sesuai Demo Mode Wokwi)
-            if (sudutFinal > 20) {
-                // --- MODE BAHAYA ---
-                statusBox.className = "bg-red-50 rounded-[2rem] p-8 text-center border border-red-200 transition-all shadow-lg shadow-red-100";
+        // Batas 20 derajat sesuai logika Wokwi kamu
+        if (sudutFinal > 20) {
+            // --- TAMPILAN BAHAYA ---
+            if(statusBox) statusBox.className = "bg-red-50 rounded-[2rem] p-8 text-center border border-red-200 transition-all shadow-lg";
+            if(statusText) {
                 statusText.innerText = "⚠️ Postur Membungkuk!";
                 statusText.className = "text-red-600 font-extrabold text-2xl mb-4";
-                
-                // Pastikan gambar berubah ke icon membungkuk
-                if(postureImg) {
-                    postureImg.src = "https://cdn-icons-png.flaticon.com/512/3048/3048378.png";
-                    postureImg.style.filter = "sepia(1) saturate(5) hue-rotate(-50deg)";
-                }
+            }
+            
+            if(postureImg) {
+                postureImg.src = "https://cdn-icons-png.flaticon.com/512/3048/3048378.png";
+                postureImg.style.filter = "sepia(1) saturate(5) hue-rotate(-50deg)";
+            }
 
-                // Jalankan Timer
-                if (!timerInterval) {
-                    timerInterval = setInterval(() => {
-                        secondsSlouching++;
-                        updateTimerUI();
-                    }, 1000);
-                }
-            } else {
-                // --- MODE AMAN ---
-                statusBox.className = "bg-green-50 rounded-[2rem] p-8 text-center border border-green-100 transition-all";
+            if(kualitasText) {
+                kualitasText.innerText = "Buruk";
+                kualitasText.className = "text-xl font-extrabold text-red-500";
+            }
+
+            // Jalankan Timer
+            if (!timerInterval) {
+                timerInterval = setInterval(() => {
+                    secondsSlouching++;
+                    updateTimerUI();
+                }, 1000);
+            }
+        } else {
+            // --- TAMPILAN AMAN ---
+            if(statusBox) statusBox.className = "bg-green-50 rounded-[2rem] p-8 text-center border border-green-100 transition-all";
+            if(statusText) {
                 statusText.innerText = "✅ Postur Baik";
                 statusText.className = "text-green-600 font-extrabold text-2xl mb-4";
-                
-                if(postureImg) {
-                    postureImg.src = "https://img.freepik.com/free-vector/flat-design-kneeling-stretch-illustration_23-2149800057.jpg";
-                    postureImg.style.filter = "none";
-                }
-
-                // Berhentikan Timer
-                clearInterval(timerInterval);
-                timerInterval = null;
+            }
+            
+            if(postureImg) {
+                postureImg.src = "https://img.freepik.com/free-vector/flat-design-kneeling-stretch-illustration_23-2149800057.jpg";
+                postureImg.style.filter = "none";
             }
 
-            // Update Kualitas Postur di Riwayat
-            const kualitasText = document.getElementById("kualitasText");
             if(kualitasText) {
-                kualitasText.innerText = sudutFinal > 20 ? "Buruk" : "Baik";
-                kualitasText.className = `text-xl font-extrabold ${sudutFinal > 20 ? 'text-red-500' : 'text-green-500'}`;
+                kualitasText.innerText = "Baik";
+                kualitasText.className = "text-xl font-extrabold text-green-500";
             }
+
+            // Matikan Timer
+            clearInterval(timerInterval);
+            timerInterval = null;
         }
-    });
+    }
+}, (error) => {
+    console.error("Firebase Error: ", error);
+});
     // 5. Navigasi
     function showPage(pageId) {
         document.querySelectorAll('.page-content').forEach(p => p.classList.remove('page-active'));
@@ -292,6 +309,7 @@
 </body>
 
 </html>
+
 
 
 
